@@ -22,7 +22,6 @@ type bufordFactory struct {
 	workers           uint
 	expiration        time.Duration
 	newClientCallback NewClient
-	pushServerURL     *string
 }
 
 type Option func(*bufordFactory)
@@ -50,13 +49,6 @@ func WithNewClient(newClientCallback NewClient) Option {
 	}
 }
 
-// WithPushServerURL sets the APNs server URL for the push notifications.
-func WithPushServerURL(pushServerURL string) Option {
-	return func(f *bufordFactory) {
-		f.pushServerURL = &pushServerURL
-	}
-}
-
 // NewPushProviderFactory creates a new instance that can spawn buford Services
 func NewPushProviderFactory(opts ...Option) *bufordFactory {
 	factory := &bufordFactory{
@@ -81,17 +73,8 @@ func (f *bufordFactory) NewPushProvider(cert *tls.Certificate) (push.PushProvide
 		return nil, err
 	}
 
-	pushServerURL := bufordpush.Production
-	if f.pushServerURL != nil {
-		pushServerURL = *f.pushServerURL
-
-		if err := push.ValidateCustomPushServerURL(pushServerURL); err != nil {
-			return nil, err
-		}
-	}
-
 	prov := &bufordPushProvider{
-		service:    bufordpush.NewService(client, pushServerURL),
+		service:    bufordpush.NewService(client, bufordpush.Production),
 		expiration: f.expiration,
 		workers:    f.workers,
 	}
