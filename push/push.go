@@ -5,8 +5,6 @@ package push
 import (
 	"context"
 	"crypto/tls"
-	"errors"
-	"net/url"
 
 	"github.com/micromdm/nanomdm/mdm"
 )
@@ -32,19 +30,4 @@ type PushProvider interface {
 // PushProviderFactory generates a new PushProvider given a tls keypair
 type PushProviderFactory interface {
 	NewPushProvider(*tls.Certificate) (PushProvider, error)
-}
-
-func ValidateCustomPushServerURL(pushServerURL string) error {
-	parsedURL, err := url.Parse(pushServerURL)
-	if err != nil {
-		return err
-	}
-	if parsedURL.Scheme == "" || (parsedURL.Scheme != "" && parsedURL.Host == "") {
-		return errors.New("push server URL must contain a scheme")
-	}
-	if parsedURL.Path != "" {
-		return errors.New("push server URL must not contain a path")
-	}
-
-	return nil
 }

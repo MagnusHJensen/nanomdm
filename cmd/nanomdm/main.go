@@ -78,7 +78,7 @@ func main() {
 		flAuthProxy  = flag.String("auth-proxy-url", "", "Reverse proxy URL target for MDM-authenticated HTTP requests")
 		flUAZLChal   = flag.Bool("ua-zl-dc", false, "reply with zero-length DigestChallenge for UserAuthenticate")
 		flWHHMACKey  = flag.String("webhook-hmac-key", "", "attaches an HMAC HTTP header to each webhook request using this key")
-		flPushURL    = flag.String("push-url", "", "custom APNs push server URL (e.g. https://api.development.push.apple.com:2197)")
+		flPushURL    = flag.String("push-url", nanopush.Production, "APNs push server URL")
 	)
 	envflag.Parse("NANOMDM_", []string{"version", "dsn"})
 

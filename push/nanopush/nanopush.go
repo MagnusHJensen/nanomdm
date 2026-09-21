@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	nanohttp "github.com/micromdm/nanomdm/http"
@@ -71,10 +72,10 @@ func defaultNewClient(cert *tls.Certificate) (*http.Client, error) {
 
 // Factory instantiates new PushProviders.
 type Factory struct {
-	newClient     NewClient
-	expiration    time.Duration
-	workers       int
-	pushServerURL *string
+	newClient  NewClient
+	expiration time.Duration
+	workers    int
+	url        *string
 }
 
 type Option func(*Factory)
@@ -105,10 +106,13 @@ func WithWorkers(workers int) Option {
 	}
 }
 
-// WithPushServerURL sets the APNs server URL for the push notifications.
-func WithPushServerURL(pushServerURL string) Option {
+// WithPushServerURL sets the APNs server URL for push notifications.
+func WithPushServerURL(url string) Option {
+	if err := validatePushServerURL(url); err != nil {
+		panic("validating push server url: " + err.Error())
+	}
 	return func(f *Factory) {
-		f.pushServerURL = &pushServerURL
+		f.url = &url
 	}
 }
 
@@ -126,20 +130,32 @@ func NewFactory(opts ...Option) *Factory {
 
 // NewPushProvider generates a new PushProvider given a tls keypair.
 func (f *Factory) NewPushProvider(cert *tls.Certificate) (push.PushProvider, error) {
-	pushServerURL := Production
-	if f.pushServerURL != nil {
-		pushServerURL = *f.pushServerURL
-		if err := push.ValidateCustomPushServerURL(pushServerURL); err != nil {
-			return nil, err
-		}
+	url := Production
+	if f.url != nil {
+		url = *f.url
 	}
 
 	p := &Provider{
 		expiration: f.expiration,
 		workers:    f.workers,
-		baseURL:    pushServerURL,
+		baseURL:    url,
 	}
 	var err error
 	p.client, err = f.newClient(cert)
 	return p, err
+}
+
+func validatePushServerURL(pushServerURL string) error {
+	parsedURL, err := url.Parse(pushServerURL)
+	if err != nil {
+		return err
+	}
+	if parsedURL.Scheme == "" || (parsedURL.Scheme != "" && parsedURL.Host == "") {
+		return errors.New("push server URL must contain a scheme")
+	}
+	if parsedURL.Path != "" {
+		return errors.New("push server URL must not contain a path")
+	}
+
+	return nil
 }
